@@ -1,0 +1,171 @@
+apply plugin: 'com.android.application'
+apply plugin: 'findbugs'
+apply plugin: 'jacoco'
+apply plugin: 'jacoco-android'
+apply plugin: 'pmd'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "26.0.0"
+    defaultConfig {
+        applicationId "browser.iclick.com.browser"
+        minSdkVersion 21
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        multiDexEnabled true
+    }
+
+    dexOptions {
+        preDexLibraries true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        beta {
+            initWith debug
+
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            applicationIdSuffix ".beta"
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+        // Use a separate buildType for coverage: testCoverageEnabled produces slower code (4-5x slower
+        // in places that I've benchmarked), and more importantly seems to break debugging with Android Studio
+        // for some developers (i.e. variables can't be inspected or seen).
+        coverage {
+            initWith debug
+
+            applicationIdSuffix ".coverage"
+            testCoverageEnabled true
+        }
+    }
+    testOptions {
+        unitTests.all {
+            jacoco {
+                includeNoLocationClasses = true
+            }
+        }
+    }
+
+    flavorDimensions "product", "engine"
+
+    productFlavors {
+        // In most countries we are Firefox Focus - but in some we need to be Firefox Klar
+        focus {
+            dimension "product"
+
+            applicationIdSuffix ".focus"
+        }
+        klar {
+            dimension "product"
+
+            applicationIdSuffix ".klar"
+        }
+
+        // We can build with two engines: webkit or gecko
+        webkit {
+            dimension "engine"
+        }
+
+        gecko {
+            dimension "engine"
+
+            applicationIdSuffix ".gecko"
+        }
+    }
+
+    variantFilter { variant ->
+        def flavors = variant.flavors*.name
+        // We only need a gecko debug build for now.
+        if (flavors.contains("gecko") && (variant.buildType.name != "debug" || flavors.contains("klar"))) {
+            setIgnore(true)
+        }
+    }
+
+    sourceSets {
+        test {
+            resources {
+                // Make the default asset folder available as test resource folder. Robolectric seems
+                // to fail to read assets for our setup. With this we can just read the files directly
+                // and do not need to rely on Robolectric.
+                srcDir "${projectDir}/src/main/assets/"
+            }
+        }
+
+        focusWebkitRelease {
+            java.srcDir 'src/focusRelease/java'
+            manifest.srcFile 'src/focusRelease/AndroidManifest.xml'
+        }
+        focusGeckoRelease {
+            java.srcDir 'src/focusRelease/java'
+            manifest.srcFile 'src/focusRelease/AndroidManifest.xml'
+        }
+        klarWebkitRelease {
+            java.srcDir 'src/klarRelease/java'
+        }
+        klarGeckoRelease {
+            java.srcDir 'src/klarRelease/java'
+        }
+    }
+
+}
+
+jacocoAndroidUnitTestReport {
+    csv.enabled false
+    html.enabled true
+    xml.enabled true
+}
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    testCompile 'junit:junit:4.12'
+
+    compile 'com.android.support:customtabs:25.3.1'
+    compile 'com.android.support:design:25.3.1'
+    compile 'com.android.support:cardview-v7:25.3.1'
+    compile 'com.android.support:recyclerview-v7:25.3.1'
+    compile ("com.google.code.findbugs:annotations:3.0.1") {
+        // We really only need the SuppressFBWarnings annotation, everything else can be ignored.
+        // Without this we get weird failures due to dependencies.
+        transitive = false
+    }
+
+    compile(name: 'telemetry-2b0baee', ext: 'aar')
+
+    focusCompile 'com.adjust.sdk:adjust-android:4.11.4'
+    focusCompile 'com.google.android.gms:play-services-analytics:10.2.6' // Required by Adjust
+
+    geckoCompile(name: 'geckoview-latest', ext: 'aar')
+
+    testCompile 'junit:junit:4.12'
+    testCompile "org.robolectric:robolectric:3.3.2"
+    testCompile 'org.mockito:mockito-core:2.7.22'
+
+    androidTestCompile 'com.android.support.test.espresso:espresso-idling-resource:2.2.2'
+    androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.2'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+    androidTestCompile 'com.squareup.okhttp3:mockwebserver:3.7.0'
+}
