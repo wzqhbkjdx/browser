@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.PopupMenu;
 
 import browser.iclick.com.browser.R;
+import browser.iclick.com.browser.utils.LogUtils;
 
 /**
  * Created by bym on 2017/6/24.
@@ -68,12 +71,26 @@ public class HomeFragment extends LocaleAwareFragment
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.fake_urlbar:
-
+                showUrlInput();
                 break;
             case R.id.menu:
 
                 break;
         }
+    }
+
+    private synchronized void showUrlInput() {
+        LogUtils.v("home_fragment", "showUrlInput");
+        final FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
+        final Fragment existFragment = fragmentManager.findFragmentByTag(UrlInputFragment.FRAGMENT_TAG);
+        if(existFragment != null && existFragment.isAdded() && !existFragment.isRemoving()) {
+            LogUtils.v("home_fragment", "showUrlInput return");
+            return;
+        }
+        final UrlInputFragment fragment = UrlInputFragment.createWithHomeScreenAnimation(fakeUrlBarView);
+
+        LogUtils.v("home_fragment", "beginTransaction");
+        fragmentManager.beginTransaction().add(R.id.container, fragment, UrlInputFragment.FRAGMENT_TAG).commit();
     }
 
     @Override
@@ -82,3 +99,15 @@ public class HomeFragment extends LocaleAwareFragment
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+

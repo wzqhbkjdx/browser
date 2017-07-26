@@ -34,18 +34,18 @@ public class MainActivity extends LocaleAwareAppCompatActivity {
 
         SafeIntent intent = new SafeIntent(getIntent());
 
-        if((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0 &&
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0 &&
                 !BrowsingSession.getInstance().isActive()) {
             intent = new SafeIntent(new Intent(Intent.ACTION_MAIN));
             setIntent(intent.getUnsafe());
         }
 
-        if(savedInstanceState == null) {
+        if (savedInstanceState == null) {
             WebViewProvider.performCleanup(this);
 
             showHomeScreen();
 
-            if(Intent.ACTION_VIEW.equals(intent.getAction())) {
+            if (Intent.ACTION_VIEW.equals(intent.getAction())) {
                 final String url = intent.getDataString();
 
                 // TODO: 2017/6/24
@@ -61,7 +61,7 @@ public class MainActivity extends LocaleAwareAppCompatActivity {
 
     private void showHomeScreen() {
         final FragmentManager fragmentManager = getSupportFragmentManager();
-        if(fragmentManager.findFragmentByTag(HomeFragment.FRAGMENT_TAG) == null) {
+        if (fragmentManager.findFragmentByTag(HomeFragment.FRAGMENT_TAG) == null) {
             fragmentManager
                     .beginTransaction()
                     .replace(R.id.container, HomeFragment.create(), HomeFragment.FRAGMENT_TAG)

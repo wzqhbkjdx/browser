@@ -6,14 +6,24 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.TextView;
 
 import browser.iclick.com.browser.R;
+import browser.iclick.com.browser.autocomplete.UrlAutoCompleteFilter;
+import browser.iclick.com.browser.utils.ThreadUtils;
+import browser.iclick.com.browser.utils.ViewUtils;
+import browser.iclick.com.browser.widget.HintFrameLayout;
+import browser.iclick.com.browser.widget.InlineAutocompleteEditText;
+
+import static browser.iclick.com.browser.R.id.dismiss;
 
 /**
  * Created by bym on 2017/6/25.
  */
 
-public class UrlInputFragment extends Fragment implements View.OnClickListener {
+public class UrlInputFragment extends Fragment implements View.OnClickListener,
+        InlineAutocompleteEditText.OnCommitListener, InlineAutocompleteEditText.OnFilterListener {
 
     public static final String FRAGMENT_TAG = "url_input";
 
@@ -67,21 +77,209 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener {
         return fragment;
     }
 
+    private View dismissView;
+    private View clearView;
+    private View searchViewContainer;
+    private TextView searchView;
+    private UrlAutoCompleteFilter urlAutoCompleteFilter;
+
+    private InlineAutocompleteEditText urlView;
+    private volatile boolean isAnimating;
+    private View toolbarBackgroundView;
+    private View urlInputBackgroundView;
+    private HintFrameLayout urlInputContainerView;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         final View view = inflater.inflate(R.layout.fragment_urlinput, container, false);
 
+        dismissView = view.findViewById(dismiss);
+        dismissView.setOnClickListener(this);
+
+        clearView = view.findViewById(R.id.clear);
+        clearView.setOnClickListener(this);
+
+        searchViewContainer = view.findViewById(R.id.search_hint_container);
+
+        searchView = (TextView) view.findViewById(R.id.search_hint);
+        searchView.setOnClickListener(this);
+
+        urlAutoCompleteFilter = new UrlAutoCompleteFilter();
+        urlAutoCompleteFilter.loadDomainsInBackground(getContext().getApplicationContext());
+
+        urlView = (InlineAutocompleteEditText) view.findViewById(R.id.url_edit);
+        urlView.setOnFilterListener(this);
+        urlView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+
+                if(hasFocus && !isAnimating) {
+                    ViewUtils.showKeyboard(urlView);
+                }
+
+            }
+        });
+
+        toolbarBackgroundView = view.findViewById(R.id.toolbar_background);
+        urlInputBackgroundView = view.findViewById(R.id.url_input_background);
+
+        urlInputContainerView = (HintFrameLayout) view.findViewById(R.id.url_input_container);
+        urlInputContainerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                urlInputContainerView.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                animateFirstDraw();
+
+                return true;
+            }
+        });
 
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+        urlView.setOnCommitListener(this);
+
+        if(getArguments().containsKey(ARGUMENT_URL)) {
+            urlView.setText(getArguments().getString(ARGUMENT_URL));
+            clearView.setVisibility(View.VISIBLE);
+        }
+
+        return view;
+    }
+
+
+    public boolean onBackPressed() {
+        animateAndDismiss();
+        return true;
+    }
+
+    private void animateFirstDraw() {
+        final String animation = getArguments().getString(ARGUMENT_ANIMATION);
+
+        if (ANIMATION_HOME_SCREEN.equals(animation)) {
+            playHomeScreenAnimation(false);
+        } else if (ANIMATION_BROWSER_SCREEN.equals(animation)) {
+            playBrowserScreenAnimation(false);
+        }
+    }
+
+    private void animateAndDismiss() {
+        ThreadUtils.assertOnUiThread();
+
+        if(isAnimating) {
+            return;
+        }
+
+        dismissView.setClickable(false);
+
+        final String animation = getArguments().getString(ARGUMENT_ANIMATION);
+
+        if(ANIMATION_HOME_SCREEN.equals(animation)) {
+            playHomeScreenAnimation(false);
+        } else if(ANIMATION_BROWSER_SCREEN.equals(animation)) {
+            playBrowserScreenAnimation(false);
+        } else {
+            dismiss();
+        }
+
+    }
+
+    private void playBrowserScreenAnimation(final boolean reverse) {
+
+    }
+
+    private void playHomeScreenAnimation(final boolean reverse) {
+        if(isAnimating) {
+            return;
+        }
+
+        isAnimating = true;
+
+        int[] screenLocation = new int[2];
+        urlInputContainerView.getLocationOnScreen(screenLocation);
+
+        int leftDelta = getArguments().getInt(ARGUMENT_X) - screenLocation[0];
+        int topDelta = getArguments().getInt(ARGUMENT_Y) - screenLocation[1];
+
+        float widthScale = getArguments().getInt(ARGUMENT_WIDTH) / urlInputContainerView.getWidth();
+        float heightScale = getArguments().getInt(ARGUMENT_HEIGHT) / urlInputContainerView.getHeight();
+
+        if(!reverse) {
+
+            urlInputContainerView.setAlpha(0);
+            urlInputContainerView.setPivotX(0);
+            urlInputContainerView.setPivotY(0);
+            urlInputContainerView.setScaleX(widthScale);
+            urlInputContainerView.setScaleY(heightScale);
+            urlInputContainerView.setTranslationX(leftDelta);
+            urlInputContainerView.setTranslationY(topDelta);
+            urlInputContainerView.setAnimationOffset(1.0f);
+
+            toolbarBackgroundView.setAlpha(0);
+            dismissView.setAlpha(0);
+
+        }
+
+    }
+
+    private void dismiss() {
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .remove(this).commitAllowingStateLoss();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        urlView.requestFocus();
     }
 
     @Override
     public void onClick(View v) {
+        switch (v.getId()) {
+            case dismiss:
+
+                break;
+
+            case R.id.clear:
+
+                break;
+
+            case R.id.search_hint:
+                onSearch();
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private void onSearch() {
 
     }
+
+    @Override
+    public void onCommit() {
+
+    }
+
+    @Override
+    public void onFilter(String searchText, InlineAutocompleteEditText view) {
+        if(!isVisible()) {
+            return;
+        }
+
+        urlAutoCompleteFilter.onFilter(searchText, view);
+
+        if(searchText.trim().isEmpty()) {
+
+        }
+
+
+    }
+
+
+
 }
 
 
