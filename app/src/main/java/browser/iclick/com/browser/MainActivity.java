@@ -7,6 +7,7 @@ import android.view.View;
 
 import browser.iclick.com.browser.activities.LocaleAwareAppCompatActivity;
 import browser.iclick.com.browser.fragment.HomeFragment;
+import browser.iclick.com.browser.fragment.UrlInputFragment;
 import browser.iclick.com.browser.utils.SafeIntent;
 import browser.iclick.com.browser.web.BrowsingSession;
 import browser.iclick.com.browser.web.WebViewProvider;
@@ -68,6 +69,23 @@ public class MainActivity extends LocaleAwareAppCompatActivity {
                     .commit();
         }
 
+    }
+
+    @Override
+    public void onBackPressed() {
+
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+
+        final UrlInputFragment urlInputFragment = (UrlInputFragment) fragmentManager.findFragmentByTag(UrlInputFragment.FRAGMENT_TAG);
+
+        if(urlInputFragment != null && urlInputFragment.isVisible() && urlInputFragment.onBackPressed()) {
+            return;
+        }
+
+
+
+
+        super.onBackPressed();
     }
 }
 

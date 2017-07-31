@@ -1,5 +1,8 @@
 package browser.iclick.com.browser.fragment;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -7,6 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import browser.iclick.com.browser.R;
@@ -176,9 +181,9 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
         final String animation = getArguments().getString(ARGUMENT_ANIMATION);
 
         if(ANIMATION_HOME_SCREEN.equals(animation)) {
-            playHomeScreenAnimation(false);
+            playHomeScreenAnimation(true);
         } else if(ANIMATION_BROWSER_SCREEN.equals(animation)) {
-            playBrowserScreenAnimation(false);
+            playBrowserScreenAnimation(true);
         } else {
             dismiss();
         }
@@ -186,7 +191,36 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
     }
 
     private void playBrowserScreenAnimation(final boolean reverse) {
+        
+        if(isAnimating) {
+            return;
+        }
+        
+        isAnimating = true;
+        
+        {
+            
+            float containerMargin = ((FrameLayout.LayoutParams)urlInputContainerView.getLayoutParams()).bottomMargin;
+            
+            float width = urlInputBackgroundView.getWidth();
+            float height = urlInputBackgroundView.getHeight();
+            
+            float widthScale = (width + (2 * containerMargin)) / width;
+            float heightScale = (height + (2 * containerMargin)) / height;
+            
+            if(!reverse) {
 
+                // TODO: 2017/7/27  
+                
+                
+                
+                
+                
+            }
+            
+            
+        }
+        
     }
 
     private void playHomeScreenAnimation(final boolean reverse) {
@@ -220,6 +254,58 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
             dismissView.setAlpha(0);
 
         }
+
+        urlInputContainerView.animate()
+                .setDuration(ANIMATION_DURATION)
+                .scaleX(reverse ? widthScale : 1)
+                .scaleY(reverse ? heightScale : 1)
+                .translationX(reverse ? leftDelta : 0)
+                .translationY(reverse ? topDelta : 0)
+                .setInterpolator(new DecelerateInterpolator())
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        ViewUtils.updateAlphaIfViewExists(getActivity(), R.id.fake_urlbar, 0f);
+
+                        urlInputContainerView.setAlpha(1);
+
+                        if(reverse) {
+                            urlView.setText("");
+                            urlView.setCursorVisible(false);
+                            urlView.clearFocus();
+                        }
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        if(reverse) {
+                            urlInputContainerView.setAlpha(0f);
+
+                            ViewUtils.updateAlphaIfViewExists(getActivity(), R.id.fake_urlbar, 1f);
+                            dismiss();
+                        } else {
+                            urlView.setCursorVisible(true);
+                        }
+
+                        isAnimating = false;
+                    }
+
+                });
+
+
+        final ObjectAnimator hintAnimator = ObjectAnimator.ofFloat(urlInputContainerView, "animationOffset", reverse ? 0f : 1f, reverse ? 1f : 0f);
+
+        hintAnimator.setDuration(ANIMATION_DURATION);
+        hintAnimator.start();
+
+        toolbarBackgroundView.animate()
+                .alpha(reverse ? 0 : 1)
+                .setDuration(ANIMATION_DURATION)
+                .setInterpolator(new DecelerateInterpolator());
+
+        dismissView.animate()
+                .alpha(reverse ? 0 : 1)
+                .setDuration(ANIMATION_DURATION);
 
     }
 
@@ -277,6 +363,8 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
 
 
     }
+
+
 
 
 
