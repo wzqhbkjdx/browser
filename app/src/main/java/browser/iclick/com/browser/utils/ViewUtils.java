@@ -19,6 +19,12 @@ public class ViewUtils {
         imm.showSoftInput(view, 0);
     }
 
+    public static void hideKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) view.getContext()
+                .getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
 
     public static void updateAlphaIfViewExists(@Nullable Activity activity, @IdRes int id, float alpha) {
         if (activity == null) {

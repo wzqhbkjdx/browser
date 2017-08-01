@@ -40,4 +40,36 @@ public class Locales {
         return countries;
     }
 
+    public static String getLanguageTag(final Locale locale) {
+        // If this were Java 7:
+        // return locale.toLanguageTag();
+
+        final String language = getLanguage(locale);
+        final String country = locale.getCountry(); // Can be an empty string.
+        if (country.equals("")) {
+            return language;
+        }
+        return language + "-" + country;
+    }
+
+    public static String getLanguage(final Locale locale) {
+        // Can, but should never be, an empty string.
+        final String language = locale.getLanguage();
+
+        // Modernize certain language codes.
+        if (language.equals("iw")) {
+            return "he";
+        }
+
+        if (language.equals("in")) {
+            return "id";
+        }
+
+        if (language.equals("ji")) {
+            return "yi";
+        }
+
+        return language;
+    }
+
 }

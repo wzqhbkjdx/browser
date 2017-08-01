@@ -17,6 +17,7 @@ import android.widget.TextView;
 import browser.iclick.com.browser.R;
 import browser.iclick.com.browser.autocomplete.UrlAutoCompleteFilter;
 import browser.iclick.com.browser.utils.ThreadUtils;
+import browser.iclick.com.browser.utils.UrlUtils;
 import browser.iclick.com.browser.utils.ViewUtils;
 import browser.iclick.com.browser.widget.HintFrameLayout;
 import browser.iclick.com.browser.widget.InlineAutocompleteEditText;
@@ -210,16 +211,74 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
             
             if(!reverse) {
 
-                // TODO: 2017/7/27  
+                urlInputBackgroundView.setPivotX(0);
+                urlInputBackgroundView.setPivotY(0);
+                urlInputBackgroundView.setScaleX(widthScale);
+                urlInputBackgroundView.setScaleY(heightScale);
+                urlInputBackgroundView.setTranslationX(-containerMargin);
+                urlInputBackgroundView.setTranslationY(-containerMargin);
+                urlInputContainerView.setAnimationOffset(0f);
                 
-                
-                
-                
-                
+                clearView.setAlpha(0);
             }
+
+            urlInputBackgroundView.animate()
+                    .setDuration(ANIMATION_DURATION)
+                    .scaleX(reverse ? widthScale : 1)
+                    .scaleY(reverse ? heightScale : 1)
+                    .alpha(reverse ? 0 : 1)
+                    .translationX(reverse ? -containerMargin : 0)
+                    .translationY(reverse ? -containerMargin : 0)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationStart(Animator animation) {
+                            if (reverse) {
+                                clearView.setAlpha(0);
+                            }
+                        }
+
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            if (reverse) {
+                                dismiss();
+                            } else {
+                                clearView.setAlpha(1);
+                            }
+
+                            isAnimating = false;
+                        }
+                    });
             
             
         }
+
+        {
+            int[] screenLocation = new int[2];
+            urlView.getLocationOnScreen(screenLocation);
+
+            int leftDelta = getArguments().getInt(ARGUMENT_X) - screenLocation[0] - urlView.getPaddingLeft();
+
+            if (!reverse) {
+                urlView.setPivotX(0);
+                urlView.setPivotY(0);
+                urlView.setTranslationX(leftDelta);
+            }
+
+            // The URL moves from the right (at least if the lock is visible) to it's actual position
+            urlView.animate()
+                    .setDuration(ANIMATION_DURATION)
+                    .translationX(reverse ? leftDelta : 0);
+        }
+
+        if (!reverse) {
+            toolbarBackgroundView.setAlpha(0);
+            clearView.setAlpha(0);
+        }
+
+        // The darker background appears with an alpha animation
+        toolbarBackgroundView.animate()
+                .setDuration(ANIMATION_DURATION)
+                .alpha(reverse ? 0 : 1);
         
     }
 
@@ -340,12 +399,25 @@ public class UrlInputFragment extends Fragment implements View.OnClickListener,
         }
     }
 
-    private void onSearch() {
-
-    }
 
     @Override
     public void onCommit() {
+        final String input = urlView.getText().toString();
+        if(!input.trim().isEmpty()) {
+            ViewUtils.hideKeyboard(urlView);
+            final boolean isUrl = UrlUtils.isUrl(input);
+
+            // TODO: 2017/7/31
+
+        }
+    }
+
+    private void openUrl() {
+
+    }
+
+
+    private void onSearch() {
 
     }
 
